@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: finance_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: finance_root_pass
+      MYSQL_DATABASE: finance_db
+      MYSQL_USER: finance_user
+      MYSQL_PASSWORD: finance_pass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - finance_network
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: finance_phpmyadmin
+    restart: always
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: finance_user
+      PMA_PASSWORD: finance_pass
+    ports:
+      - "8080:80"
+    depends_on:
+      - mysql
+    networks:
+      - finance_network
+
+volumes:
+  mysql_data:
+
+networks:
+  finance_network:
+    driver: bridge
