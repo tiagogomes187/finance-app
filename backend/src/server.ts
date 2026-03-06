@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.routes';
+import accountRoutes from './routes/account.routes';
+import categoryRoutes from './routes/category.routes';
 
 dotenv.config();
 
@@ -16,7 +18,9 @@ app.use(cors({
 }));
 
 // ─── Rotas ────────────────────────────────────────────────────────────
-app.use('/auth', authRoutes);
+app.use('/auth',       authRoutes);
+app.use('/accounts',   accountRoutes);
+app.use('/categories', categoryRoutes);
 
 // ─── Health check ─────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
