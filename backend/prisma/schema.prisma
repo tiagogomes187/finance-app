@@ -1,14 +1,164 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
+// Configuração do Prisma Client (gerador de código)
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
+// Configuração do banco de dados
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// USUÁRIO
+// ─────────────────────────────────────────────
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  email     String   @unique @db.VarChar(150)
+  password  String   @db.VarChar(255)
+  avatar    String?  @db.VarChar(255)
+  currency  String   @default("BRL") @db.VarChar(10)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  accounts     Account[]
+  categories   Category[]
+  transactions Transaction[]
+  transfers    Transfer[]
+  budgets      Budget[]
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// CONTA (Carteira, Banco, Cartão, etc.)
+// ─────────────────────────────────────────────
+model Account {
+  id           Int         @id @default(autoincrement())
+  userId       Int         @map("user_id")
+  name         String      @db.VarChar(100)
+  type         AccountType @default(CHECKING)
+  balance      Decimal     @default(0) @db.Decimal(15, 2)
+  color        String      @default("#6366f1") @db.VarChar(7)
+  icon         String      @default("wallet") @db.VarChar(50)
+  isActive     Boolean     @default(true) @map("is_active")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions      Transaction[]
+  transfersFrom     Transfer[]    @relation("TransferFrom")
+  transfersTo       Transfer[]    @relation("TransferTo")
+
+  @@map("accounts")
+}
+
+// Tipos de conta disponíveis
+enum AccountType {
+  CHECKING    // Conta Corrente
+  SAVINGS     // Poupança
+  WALLET      // Carteira (dinheiro físico)
+  CREDIT      // Cartão de Crédito
+  INVESTMENT  // Investimento
+}
+
+// ─────────────────────────────────────────────
+// CATEGORIA
+// ─────────────────────────────────────────────
+model Category {
+  id        Int              @id @default(autoincrement())
+  userId    Int              @map("user_id")
+  name      String           @db.VarChar(100)
+  type      TransactionType
+  color     String           @default("#6366f1") @db.VarChar(7)
+  icon      String           @default("tag") @db.VarChar(50)
+  isDefault Boolean          @default(false) @map("is_default")
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  budgets      Budget[]
+
+  @@map("categories")
+}
+
+// ─────────────────────────────────────────────
+// TRANSAÇÃO (Receita ou Despesa)
+// ─────────────────────────────────────────────
+model Transaction {
+  id          Int             @id @default(autoincrement())
+  userId      Int             @map("user_id")
+  accountId   Int             @map("account_id")
+  categoryId  Int             @map("category_id")
+  type        TransactionType
+  amount      Decimal         @db.Decimal(15, 2)
+  description String          @db.VarChar(255)
+  date        DateTime        @db.Date
+  notes       String?         @db.Text
+  isPaid      Boolean         @default(true) @map("is_paid")
+  isRecurring Boolean         @default(false) @map("is_recurring")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account  Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("transactions")
+}
+
+// Tipo da transação
+enum TransactionType {
+  INCOME   // Receita
+  EXPENSE  // Despesa
+}
+
+// ─────────────────────────────────────────────
+// TRANSFERÊNCIA (entre contas do mesmo usuário)
+// ─────────────────────────────────────────────
+model Transfer {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  fromAccountId Int      @map("from_account_id")
+  toAccountId   Int      @map("to_account_id")
+  amount        Decimal  @db.Decimal(15, 2)
+  description   String?  @db.VarChar(255)
+  date          DateTime @db.Date
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromAccount Account @relation("TransferFrom", fields: [fromAccountId], references: [id], onDelete: Cascade)
+  toAccount   Account @relation("TransferTo", fields: [toAccountId], references: [id], onDelete: Cascade)
+
+  @@map("transfers")
+}
+
+// ─────────────────────────────────────────────
+// ORÇAMENTO (limite mensal por categoria)
+// ─────────────────────────────────────────────
+model Budget {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  categoryId Int      @map("category_id")
+  amount     Decimal  @db.Decimal(15, 2)
+  month      Int      // 1 a 12
+  year       Int
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relacionamentos
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  // Garante 1 orçamento por categoria/mês/ano por usuário
+  @@unique([userId, categoryId, month, year])
+  @@map("budgets")
 }
