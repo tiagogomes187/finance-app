@@ -1,16 +1,17 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
+import Login         from './pages/auth/Login';
+import Register      from './pages/auth/Register';
+import Dashboard     from './pages/dashboard/Dashboard';
+import AppLayout     from './components/layout/AppLayout';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 
-// Configura o React Query
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry:              1,
+      retry:                1,
       refetchOnWindowFocus: false,
-      staleTime:          1000 * 60 * 5, // 5 minutos
+      staleTime:            1000 * 60 * 5,
     },
   },
 });
@@ -24,32 +25,27 @@ export default function App() {
           <Route path="/login"    element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* Rota raiz — redireciona para dashboard */}
+          {/* Rotas protegidas com layout */}
           <Route
-            path="/"
             element={
               <ProtectedRoute>
-                <Navigate to="/dashboard" replace />
+                <AppLayout />
               </ProtectedRoute>
             }
-          />
+          >
+            <Route path="/dashboard"    element={<Dashboard />} />
 
-          {/* Rota temporária do dashboard — vamos criar na próxima etapa */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <div className="flex items-center justify-center min-h-screen">
-                  <h1 className="text-2xl font-bold text-primary-600">
-                    🎉 Bem-vindo ao FinanceApp!
-                  </h1>
-                </div>
-              </ProtectedRoute>
-            }
-          />
+            {/* Páginas que criaremos nas próximas etapas */}
+            <Route path="/transactions" element={<div className="text-center py-20 text-gray-400">Em breve — Transações</div>} />
+            <Route path="/accounts"     element={<div className="text-center py-20 text-gray-400">Em breve — Contas</div>} />
+            <Route path="/categories"   element={<div className="text-center py-20 text-gray-400">Em breve — Categorias</div>} />
+            <Route path="/reports"      element={<div className="text-center py-20 text-gray-400">Em breve — Relatórios</div>} />
+            <Route path="/profile"      element={<div className="text-center py-20 text-gray-400">Em breve — Perfil</div>} />
+          </Route>
 
-          {/* Qualquer rota não encontrada vai para login */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
+          {/* Redireciona raiz para dashboard */}
+          <Route path="/"  element={<Navigate to="/dashboard" replace />} />
+          <Route path="*"  element={<Navigate to="/login"     replace />} />
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
